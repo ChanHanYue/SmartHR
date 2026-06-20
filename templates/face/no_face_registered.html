@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Face Not Registered{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-warning shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">⚠️ Face Not Registered</h4>
+                </div>
+                <div class="card-body text-center">
+                    <div style="font-size: 4rem; margin: 30px 0;">😕</div>
+                    
+                    <h5>Hello, {{ employee.full_name }}!</h5>
+                    
+                    <p class="text-muted">
+                        Your face has not been registered yet. You need to register your face before you can use 
+                        face-based attendance.
+                    </p>
+
+                    <div class="alert alert-info">
+                        <strong>What you need to do:</strong>
+                        <ol class="text-left mt-3">
+                            <li>Contact your HR or Manager</li>
+                            <li>They will register your face using the Face Registration page</li>
+                            <li>Once registered, you can use this page for check-in/out</li>
+                        </ol>
+                    </div>
+
+                    <div class="alert alert-light">
+                        <strong>💡 Why face registration?</strong>
+                        <ul class="text-left text-muted mt-2 mb-0" style="font-size: 0.9rem;">
+                            <li>Secure and fast attendance logging</li>
+                            <li>No need to remember passwords or codes</li>
+                            <li>Reduces time theft and buddy punching</li>
+                            <li>Works on any device with a camera</li>
+                        </ul>
+                    </div>
+
+                    <hr>
+
+                    <p class="text-muted mb-4">
+                        <small>Face registration takes only 1-2 minutes and is done by HR.</small>
+                    </p>
+
+                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary btn-lg btn-block">
+                        ← Go to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

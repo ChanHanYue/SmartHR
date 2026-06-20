@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Face Registration - {{ employee.full_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">👤 Face Registration</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Employee Info -->
+                    <div class="Alert alert-info mb-4">
+                        <strong>Employee:</strong> {{ employee.full_name }} (ID: {{ employee.employee_id }})<br>
+                        <strong>Email:</strong> {{ employee.email }}<br>
+                        {% if already_registered %}
+                        <span class="badge badge-warning">Face already registered - will be replaced</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Webcam Preview -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>📹 Live Preview</h5>
+                            <video id="videoElement" width="100%" height="auto" autoplay playsinline 
+                                   style="border: 2px solid #28a745; border-radius: 8px; background: #000;">
+                            </video>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>📸 Captured Photo</h5>
+                            <canvas id="canvasElement" width="320" height="240" 
+                                    style="border: 2px solid #ccc; border-radius: 8px; background: #f5f5f5; display: none; width: 100%; height: auto;">
+                            </canvas>
+                            <div id="noCapture" class="text-center text-muted" style="padding: 60px 20px;">
+                                <p>Capture will appear here</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="alert alert-warning">
+                        <strong>📋 Instructions:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Position your face clearly in the center of the webcam</li>
+                            <li>Ensure good lighting (avoid shadows on face)</li>
+                            <li>Look directly at the camera</li>
+                            <li>Remove sunglasses and hats if possible</li>
+                            <li>Click "📸 Capture Photo" to take a picture</li>
+                            <li>Click "✅ Register Face" to confirm</li>
+                        </ul>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="mt-4">
+                        <button id="captureBtn" class="btn btn-primary btn-lg btn-block" onclick="capturePhoto()">
+                            📸 Capture Photo
+                        </button>
+                    </div>
+
+                    <div id="actionButtons" style="display: none; margin-top: 15px;">
+                        <button id="registerBtn" class="btn btn-success btn-lg btn-block" onclick="registerFace()">
+                            ✅ Register Face
+                        </button>
+                        <button id="retakeBtn" class="btn btn-secondary btn-lg btn-block mt-2" onclick="resetCapture()">
+                            🔄 Retake Photo
+                        </button>
+                    </div>
+
+                    <!-- Status Messages -->
+                    <div id="statusMessage" class="mt-4" style="display: none;">
+                        <div id="successMsg" class="alert alert-success" style="display: none;">
+                            <strong>✅ Success!</strong> <span id="successText"></span>
+                        </div>
+                        <div id="errorMsg" class="alert alert-danger" style="display: none;">
+                            <strong>❌ Error:</strong> <span id="errorText"></span>
+                        </div>
+                        <div id="loadingMsg" class="alert alert-info" style="display: none;">
+                            <strong>⏳ Processing...</strong> Please wait while we process your face.
+                        </div>
+                    </div>
+
+                    <!-- Retry Counter -->
+                    <div id="retryInfo" class="text-muted small mt-3" style="display: none;">
+                        Attempts: <span id="retryCount">0</span>/5
+                    </div>
+                </div>
+            </div>
+
+            <!-- Back Link -->
+            <div class="mt-3">
+                <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-secondary">
+                    ← Back to Employees
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #videoElement {
+        object-fit: cover;
+        transform: scaleX(-1);  /* Mirror effect */
+    }
+    #canvasElement {
+        transform: scaleX(-1);  /* Mirror effect to match video */
+    }
+    .btn-block {
+        width: 100%;
+    }
+</style>
+
+<script>
+let videoStream = null;
+let capturedImageData = null;
+let retryCount = 0;
+const MAX_RETRIES = 5;
+
+// ─────────────────────────────────────────────────────────────────────────
+// INITIALIZATION
+// ─────────────────────────────────────────────────────────────────────────
+
+async function initCamera() {
+    try {
+        // Request camera access with front-facing preference
+        const constraints = {
+            video: {
+                facingMode: 'user',  // Front camera
+                width: { ideal: 320 },
+                height: { ideal: 240 }
+            },
+            audio: false
+        };
+        
+        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        document.getElementById('videoElement').srcObject = videoStream;
+        console.log('✅ Camera initialized');
+    } catch (error) {
+        showError(`Camera Error: ${error.message}`);
+        console.error('Camera error:', error);
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initCamera();
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// CAPTURE PHOTO
+// ─────────────────────────────────────────────────────────────────────────
+
+function capturePhoto() {
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('canvasElement');
+    const ctx = canvas.getContext('2d');
+    
+    // Get video dimensions
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+    
+    if (width === 0 || height === 0) {
+        showError('Camera not ready. Please wait and try again.');
+        return;
+    }
+    
+    // Resize canvas to match video
+    canvas.width = width;
+    canvas.height = height;
+    
+    // Draw mirrored video frame
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -width, 0, width, height);
+    
+    capturedImageData = canvas.toDataURL('image/jpeg', 0.9);
+    
+    // Show captured image, hide video preview
+    canvas.style.display = 'block';
+    document.getElementById('videoElement').style.display = 'none';
+    document.getElementById('noCapture').style.display = 'none';
+    
+    // Show action buttons
+    document.getElementById('captureBtn').style.display = 'none';
+    document.getElementById('actionButtons').style.display = 'block';
+    document.getElementById('retryInfo').style.display = 'block';
+    document.getElementById('retryCount').textContent = retryCount + 1;
+    
+    console.log('📸 Photo captured');
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// RESET / RETAKE
+// ─────────────────────────────────────────────────────────────────────────
+
+function resetCapture() {
+    const canvas = document.getElementById('canvasElement');
+    canvas.style.display = 'none';
+    document.getElementById('videoElement').style.display = 'block';
+    document.getElementById('noCapture').style.display = 'block';
+    
+    document.getElementById('captureBtn').style.display = 'block';
+    document.getElementById('actionButtons').style.display = 'none';
+    document.getElementById('retryInfo').style.display = 'none';
+    
+    // Clear messages
+    hideAllMessages();
+    
+    retryCount++;
+    if (retryCount >= MAX_RETRIES) {
+        showError(`Maximum retries (${MAX_RETRIES}) reached. Please refresh the page.`);
+        document.getElementById('retakeBtn').disabled = true;
+    }
+    
+    console.log('🔄 Retaking photo...');
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// REGISTER FACE
+// ─────────────────────────────────────────────────────────────────────────
+
+async function registerFace() {
+    if (!capturedImageData) {
+        showError('No photo captured. Please capture a photo first.');
+        return;
+    }
+    
+    const empId = {{ employee.employee_id }};
+    
+    try {
+        showLoading();
+        
+        const response = await fetch('/face/api/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                employee_id: empId,
+                image: capturedImageData
+            })
+        });
+        
+        hideLoading();
+        const result = await response.json();
+        
+        if (result.success) {
+            showSuccess(result.msg);
+            // Disable buttons after success
+            document.getElementById('registerBtn').disabled = true;
+            document.getElementById('retakeBtn').disabled = true;
+            
+            // Redirect after 2 seconds
+            setTimeout(() => {
+                window.location.href = "{{ url_for('employees.list_employees') }}";
+            }, 2000);
+        } else {
+            showError(result.msg);
+        }
+    } catch (error) {
+        hideLoading();
+        showError(`Request failed: ${error.message}`);
+        console.error('Registration error:', error);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// MESSAGE DISPLAY
+// ─────────────────────────────────────────────────────────────────────────
+
+function showSuccess(msg) {
+    document.getElementById('statusMessage').style.display = 'block';
+    document.getElementById('successMsg').style.display = 'block';
+    document.getElementById('successText').textContent = msg;
+    document.getElementById('errorMsg').style.display = 'none';
+    document.getElementById('loadingMsg').style.display = 'none';
+}
+
+function showError(msg) {
+    document.getElementById('statusMessage').style.display = 'block';
+    document.getElementById('errorMsg').style.display = 'block';
+    document.getElementById('errorText').textContent = msg;
+    document.getElementById('successMsg').style.display = 'none';
+    document.getElementById('loadingMsg').style.display = 'none';
+}
+
+function showLoading() {
+    document.getElementById('statusMessage').style.display = 'block';
+    document.getElementById('loadingMsg').style.display = 'block';
+    document.getElementById('successMsg').style.display = 'none';
+    document.getElementById('errorMsg').style.display = 'none';
+}
+
+function hideAllMessages() {
+    document.getElementById('statusMessage').style.display = 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Add Employee{% endblock %}
+{% block page_title %}Add New Employee{% endblock %}
+
+{% block content %}
+<div style="max-width:800px">
+<form method="POST" action="{{ url_for('employees.add_employee') }}">
+  <div class="card fade-in" style="margin-bottom:20px;border:1px dashed var(--g300);background:var(--g50)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <div style="font-weight:700;color:var(--g700)">Smart Identity Scanner</div>
+        <div style="font-size:12px;color:var(--text-secondary)">Upload IC to auto-fill details.</div>
+      </div>
+      <div class="btn-group" style="display:flex;gap:8px">
+        <a href="{{ url_for('employees.upload_ic') }}" class="btn btn-sm btn-primary">
+          📷 Upload MyKad (IC)
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <input type="hidden" name="id_document_path" id="id_document_path" value="{{ form_data.get('id_document_path','') }}">
+
+  <div class="card fade-in" style="margin-bottom:20px">
+    <div class="sec-title">Personal Information</div>
+    <div class="form-row">
+      <div class="form-group mb-0"><label class="form-label">Full Name *</label><input class="form-input" name="full_name" value="{{ form_data.get('full_name','') }}" required placeholder="e.g. Ahmad bin Abdullah"></div>
+      <div class="form-group mb-0" id="ic_number_group">
+        <label class="form-label">IC Number</label>
+        <input class="form-input" name="ic_number" id="ic_number_input" value="{{ form_data.get('ic_number','') }}" placeholder="e.g. 900101-14-5001">
+      </div>
+      <div class="form-group mb-0" id="passport_number_group" style="display:none">
+        <label class="form-label">Passport Number</label>
+        <input class="form-input" id="passport_number_input" name="passport_number" placeholder="e.g. A12345678">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group mb-0"><label class="form-label">Date of Birth</label><input class="form-input" name="date_of_birth" value="{{ form_data.get('date_of_birth','') }}" type="date"></div>
+      <div class="form-group mb-0">
+        <label class="form-label">Gender</label>
+        <select class="form-input" name="gender">
+          <option value="">Select gender</option>
+          <option value="Male" {{ 'selected' if form_data.get('gender')=='Male' }}>Male</option>
+          <option value="Female" {{ 'selected' if form_data.get('gender')=='Female' }}>Female</option>
+          <option value="Other" {{ 'selected' if form_data.get('gender')=='Other' }}>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group mb-0"><label class="form-label">Contact No.</label><input class="form-input" name="contact_no" value="{{ form_data.get('contact_no','') }}" placeholder="+601X-XXXXXXXX"></div>
+      <div class="form-group mb-0"><label class="form-label">Email Address *</label><input class="form-input" type="email" name="email" value="{{ form_data.get('email','') }}" required placeholder="name@company.com"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Home Address</label>
+      <textarea class="form-input" name="address" id="address_input" rows="2" placeholder="No. X, Jalan …">{{ form_data.get('address','') }}</textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group mb-0"><label class="form-label">Emergency Contact Name</label><input class="form-input" name="emergency_contact_name" value="{{ form_data.get('emergency_contact_name','') }}" placeholder="Next of kin name"></div>
+      <div class="form-group mb-0"><label class="form-label">Emergency Contact No.</label><input class="form-input" name="emergency_contact_no" value="{{ form_data.get('emergency_contact_no','') }}" placeholder="+601X-XXXXXXXX"></div>
+    </div>
+  </div>
+
+  <div class="card fade-in" style="margin-bottom:20px">
+    <div class="sec-title">Employment Details</div>
+    <div class="form-row">
+      <div class="form-group mb-0">
+        <label class="form-label">Branch *</label>
+        <select class="form-input" name="branch_id" id="branch_id" onchange="filterDepartments()" required>
+          <option value="">Select branch</option>
+          {% for b in branches %}
+          <option value="{{ b.branch_id }}" {{ 'selected' if form_data.get('branch_id')|string == b.branch_id|string }}>{{ b.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label">Department *</label>
+        <select class="form-input" name="department_id" id="department_id" required>
+          <option value="">Select department</option>
+          {% for d in departments %}
+          <option value="{{ d.department_id }}" data-branch="{{ d.branch_id }}" {{ 'selected' if form_data.get('department_id')|string == d.department_id|string }}>{{ d.department_name }} ({{ d.branch_name }})</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group mb-0"><label class="form-label">Position / Job Title</label><input class="form-input" name="position" value="{{ form_data.get('position','') }}" placeholder="e.g. Software Engineer"></div>
+      <div class="form-group mb-0"><label class="form-label">Hire Date *</label><input class="form-input" type="date" name="hire_date" value="{{ form_data.get('hire_date','') }}" required></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group mb-0">
+        <label class="form-label">Employment Type *</label>
+        <select class="form-input" name="employment_type" required>
+          {% for et in ['Full-Time','Part-Time','Contract'] %}
+          <option value="{{ et }}" {{ 'selected' if form_data.get('employment_type') == et }}>{{ et }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label">Base Salary (RM) *</label>
+        <input class="form-input" type="number" name="base_salary" step="0.01" min="0" value="{{ form_data.get('base_salary','') }}" placeholder="0.00" required>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group mb-0">
+        <label class="form-label">System Role *</label>
+        <select class="form-input" name="role_id" required>
+          {% for r in roles %}
+          <option value="{{ r.role_id }}" {{ 'selected' if form_data.get('role_id')|string == r.role_id|string }}>{{ r.role_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label">Employment Status</label>
+        <select class="form-input" name="employment_status">
+          <option value="Active" {{ 'selected' if form_data.get('employment_status') == 'Active' }}>Active</option>
+          <option value="Inactive" {{ 'selected' if form_data.get('employment_status') == 'Inactive' }}>Inactive</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card fade-in" style="margin-bottom:20px">
+    <div class="sec-title">Login Credentials</div>
+    <div class="form-row">
+      <div class="form-group mb-0">
+        <label class="form-label">Password *</label>
+        <input class="form-input" type="password" name="password" required minlength="6" placeholder="Min. 6 characters">
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label">Confirm Password *</label>
+        <input class="form-input" type="password" name="confirm_password" required placeholder="Repeat password">
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" type="submit">Create Employee</button>
+    <a class="btn" href="{{ url_for('employees.list_employees') }}">Cancel</a>
+  </div>
+</form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterDepartments() {
+    const branchId = document.getElementById('branch_id').value;
+    const deptSelect = document.getElementById('department_id');
+    const options = deptSelect.querySelectorAll('option');
+
+    options.forEach(opt => {
+        if (!opt.value) return;
+        const optBranch = opt.getAttribute('data-branch');
+        if (!branchId || optBranch === branchId) {
+            opt.style.display = "";
+        } else {
+            opt.style.display = "none";
+        }
+    });
+
+    if (deptSelect.value && deptSelect.selectedOptions[0].style.display === "none") {
+        deptSelect.value = "";
+    }
+}
+
+function loadOcrData() {
+    const ocrDataStr = sessionStorage.getItem('icOcrData');
+    if (!ocrDataStr) return;
+
+    try {
+        const data = JSON.parse(ocrDataStr);
+        if (data.full_name) document.getElementsByName('full_name')[0].value = data.full_name;
+        if (data.ic_number) document.getElementById('ic_number_input').value = data.ic_number;
+        if (data.date_of_birth) document.getElementsByName('date_of_birth')[0].value = data.date_of_birth;
+        if (data.gender) document.getElementsByName('gender')[0].value = data.gender;
+        if (data.address) document.getElementById('address_input').value = data.address;
+        if (data.id_document_path) document.getElementById('id_document_path').value = data.id_document_path;
+        
+        // Clear from storage
+        sessionStorage.removeItem('icOcrData');
+    } catch (e) {
+        console.error('Error loading OCR data:', e);
+    }
+}
+
+document.querySelector('form').addEventListener('submit', function() {
+});
+
+window.onload = function() {
+    filterDepartments();
+    // Check if we came from IC upload page
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('from_ic_upload')) {
+        loadOcrData();
+    }
+};
+</script>
+{% endblock %}

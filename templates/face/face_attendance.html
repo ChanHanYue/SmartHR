@@ -1,0 +1,540 @@
+{% extends "base.html" %}
+
+{% block title %}Face Attendance - Check In/Out{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Card Container -->
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h4 class="mb-0">👤 Face Attendance Check-In/Out</h4>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge badge-light">{{ employee.full_name }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Main Grid: Video + Status -->
+                    <div class="row mb-4">
+                        <!-- Webcam Preview (Left) -->
+                        <div class="col-md-8">
+                            <div class="card bg-dark">
+                                <div class="card-header">
+                                    <h5 class="mb-0 text-white">📹 Live Camera</h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    <video id="videoElement" width="100%" height="auto" autoplay playsinline 
+                                           style="border-radius: 8px; background: #000; transform: scaleX(-1);">
+                                    </video>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Panel (Right) -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="mb-0">Status</h5>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Status Messages -->
+                                    <div id="statusPanel">
+                                        <div id="readyStatus" class="alert alert-info" style="display: none;">
+                                            <strong>🟢 Ready</strong><br>
+                                            <small>Camera is active. Position your face in center.</small>
+                                        </div>
+                                        <div id="processingStatus" class="alert alert-warning" style="display: none;">
+                                            <strong>⏳ Processing...</strong><br>
+                                            <small>Matching face to database...</small>
+                                        </div>
+                                        <div id="successStatus" class="alert alert-success" style="display: none;">
+                                            <strong id="successMsg">✅ Success!</strong><br>
+                                            <small id="successDetail"></small>
+                                        </div>
+                                        <div id="errorStatus" class="alert alert-danger" style="display: none;">
+                                            <strong id="errorMsg">❌ Error</strong><br>
+                                            <small id="errorDetail"></small>
+                                        </div>
+                                    </div>
+
+                                    <!-- Confidence Score -->
+                                    <div id="confidenceDiv" style="display: none; margin-top: 15px;">
+                                        <strong>Match Confidence:</strong>
+                                        <div class="progress">
+                                            <div id="confidenceBar" class="progress-bar" role="progressbar" 
+                                                 style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <small id="confidenceText" class="text-muted"></small>
+                                    </div>
+
+                                    <!-- Attempt Counter -->
+                                    <div id="attemptsDiv" style="margin-top: 15px; text-align: center;">
+                                        <span class="badge badge-secondary">Attempts: <span id="attemptCount">0</span>/10</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="alert alert-info">
+                        <strong>📋 How to Use:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Position:</strong> Face centered in camera frame</li>
+                            <li><strong>Lighting:</strong> Good lighting, no shadows on face</li>
+                            <li><strong>Timing:</strong> Hold still for 2-3 seconds while system captures</li>
+                            <li><strong>Result:</strong> Auto check-in on first match, check-out on second</li>
+                            <li><strong>Fail:</strong> If not recognized, use manual entry below</li>
+                        </ul>
+                    </div>
+
+                    <!-- Divider -->
+                    <hr>
+
+                    <!-- Control & Fallback Section -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <!-- Auto Mode (Default) -->
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0">🤖 Automatic Mode (Active)</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted"><small>Camera is continuously capturing and matching faces.</small></p>
+                                    <button id="pauseBtn" class="btn btn-warning btn-block" onclick="pauseCapture()">
+                                        ⏸ Pause Capture
+                                    </button>
+                                    <button id="resumeBtn" class="btn btn-success btn-block" onclick="resumeCapture()" style="display: none;">
+                                        ▶ Resume Capture
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <!-- Manual Fallback -->
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h5 class="mb-0">📝 Manual Entry (Fallback)</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted"><small>If face recognition fails, use manual entry.</small></p>
+                                    <button id="manualBtn" class="btn btn-warning btn-block" data-toggle="modal" 
+                                            data-target="#manualEntryModal">
+                                        🕐 Manual Time Entry
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Attendance -->
+                    <hr>
+                    <div class="mt-4">
+                        <h5>📊 Today's Attendance</h5>
+                        <div id="todayAttendance" class="alert alert-light">
+                            <small class="text-muted">No attendance recorded yet.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Back Button -->
+            <div class="mt-3">
+                <a href="{{ url_for('att_bp.attendance_list') }}" class="btn btn-outline-secondary">
+                    ← Back to Attendance
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Entry Modal -->
+<div class="modal fade" id="manualEntryModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">📝 Manual Time Entry</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="resumeCapture();">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <small>
+                        <strong>Note:</strong> This modal automatically opens after:
+                        <ul class="mb-0 mt-2">
+                            <li>3 consecutive failed face match attempts, OR</li>
+                            <li>5 seconds without finding a match</li>
+                        </ul>
+                    </small>
+                </div>
+                <form id="manualEntryForm">
+                    <div class="form-group">
+                        <label for="checkInTime"><strong>Check-In Time *</strong></label>
+                        <input type="time" class="form-control" id="checkInTime" required>
+                        <small class="form-text text-muted">e.g., 09:00</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="checkOutTime"><strong>Check-Out Time (Optional)</strong></label>
+                        <input type="time" class="form-control" id="checkOutTime">
+                        <small class="form-text text-muted">Leave blank to check out manually later</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="manualReason"><strong>Reason (Optional)</strong></label>
+                        <textarea class="form-control" id="manualReason" rows="3" 
+                                  placeholder="e.g., Face recognition failed"></textarea>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <small>
+                            <strong>Note:</strong> Manual entries are marked as pending and require HR approval. 
+                            They will appear in your attendance record with a manual flag.
+                        </small>
+                    </div>
+
+                    <div id="manualErrorMsg" class="alert alert-danger" style="display: none;"></div>
+                    <div id="manualSuccessMsg" class="alert alert-success" style="display: none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="resumeCapture();">Try Face Again</button>
+                <button type="button" class="btn btn-warning" onclick="submitManualEntry()">Submit Manual Entry</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #videoElement {
+        object-fit: cover;
+        width: 100%;
+        height: 400px;
+    }
+
+    .card {
+        border-radius: 8px;
+    }
+
+    .progress-bar {
+        transition: width 0.3s ease;
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+    }
+</style>
+
+<script>
+let videoStream = null;
+let isCapturing = true;
+let attemptCount = 0;
+let failedAttempts = 0;
+const MAX_ATTEMPTS = 10;
+const MAX_FAILED_ATTEMPTS = 3;  // Auto-switch after 3 failed attempts
+const TIMEOUT_SECONDS = 5;
+let captureTimeout = null;
+let sessionStartTime = null;
+let timeoutTimer = null;
+
+// ─────────────────────────────────────────────────────────────────────────
+// INITIALIZATION
+// ─────────────────────────────────────────────────────────────────────────
+
+async function initCamera() {
+    try {
+        const constraints = {
+            video: {
+                facingMode: 'user',
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            },
+            audio: false
+        };
+        
+        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        document.getElementById('videoElement').srcObject = videoStream;
+        
+        showStatus('ready');
+        console.log('✅ Camera initialized');
+        
+        // Start continuous capture after short delay
+        setTimeout(startContinuousCapture, 1000);
+    } catch (error) {
+        showError(`Camera Error: ${error.message}`);
+        console.error('Camera error:', error);
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initCamera();
+    
+    // Clear form when modal is shown
+    $('#manualEntryModal').on('show.bs.modal', function() {
+        clearManualForm();
+    });
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// CONTINUOUS CAPTURE & MATCHING
+// ─────────────────────────────────────────────────────────────────────────
+
+function startContinuousCapture() {
+    if (!isCapturing || !videoStream) return;
+    
+    // Set session start time and timeout timer
+    if (!sessionStartTime) {
+        sessionStartTime = Date.now();
+        startTimeoutTimer();
+    }
+    
+    captureAndMatch();
+    
+    // Capture every 2 seconds
+    captureTimeout = setTimeout(startContinuousCapture, 2000);
+}
+
+function startTimeoutTimer() {
+    // After 5 seconds with no match, auto-show manual entry
+    timeoutTimer = setTimeout(() => {
+        if (isCapturing && failedAttempts > 0) {
+            showError('⏱ Time limit (5 seconds) reached with no match. Switching to manual entry...');
+            pauseCapture();
+            setTimeout(() => {
+                $('#manualEntryModal').modal('show');
+            }, 500);
+        }
+    }, TIMEOUT_SECONDS * 1000);
+}
+
+async function captureAndMatch() {
+    if (!isCapturing) return;
+    
+    try {
+        const video = document.getElementById('videoElement');
+        if (video.videoWidth === 0 || video.videoHeight === 0) return;
+        
+        // Get frame
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL('image/jpeg', 0.9);
+        
+        // Send to server for matching
+        const response = await fetch('/face/api/match_and_record', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({image: imageData})
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Face matched! Clear timers and reset
+            clearTimeout(timeoutTimer);
+            sessionStartTime = null;
+            failedAttempts = 0;
+            
+            // Show success
+            showSuccess(result.msg, result.confidence);
+            isCapturing = false;
+            pauseCapture();
+            
+            // Load today's attendance
+            loadTodayAttendance();
+            
+            // Allow continue after 5 seconds
+            setTimeout(() => {
+                isCapturing = true;
+                startContinuousCapture();
+            }, 5000);
+        } else {
+            // Face not recognized - increment counters
+            failedAttempts++;
+            attemptCount++;
+            document.getElementById('attemptCount').textContent = attemptCount;
+            
+            console.log(`❌ Failed attempt ${failedAttempts}/${MAX_FAILED_ATTEMPTS}`);
+            
+            // Switch to manual after 3 failed attempts
+            if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+                showError(`❌ No match after ${MAX_FAILED_ATTEMPTS} attempts. Switching to manual entry...`);
+                clearTimeout(timeoutTimer);
+                sessionStartTime = null;
+                pauseCapture();
+                
+                // Auto-open manual entry modal
+                setTimeout(() => {
+                    $('#manualEntryModal').modal('show');
+                }, 500);
+            }
+        }
+    } catch (error) {
+        console.error('Capture error:', error);
+    }
+}
+
+function pauseCapture() {
+    isCapturing = false;
+    clearTimeout(captureTimeout);
+    clearTimeout(timeoutTimer);
+    document.getElementById('pauseBtn').style.display = 'none';
+    document.getElementById('resumeBtn').style.display = 'block';
+    showStatus('ready');
+}
+
+function resumeCapture() {
+    isCapturing = true;
+    failedAttempts = 0;
+    attemptCount = 0;
+    sessionStartTime = null;
+    document.getElementById('attemptCount').textContent = '0';
+    document.getElementById('pauseBtn').style.display = 'block';
+    document.getElementById('resumeBtn').style.display = 'none';
+    startContinuousCapture();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// STATUS DISPLAY
+// ─────────────────────────────────────────────────────────────────────────
+
+function showStatus(status) {
+    document.getElementById('readyStatus').style.display = status === 'ready' ? 'block' : 'none';
+    document.getElementById('processingStatus').style.display = status === 'processing' ? 'block' : 'none';
+    document.getElementById('successStatus').style.display = status === 'success' ? 'block' : 'none';
+    document.getElementById('errorStatus').style.display = status === 'error' ? 'block' : 'none';
+}
+
+function showSuccess(msg, confidence) {
+    showStatus('success');
+    document.getElementById('successMsg').textContent = msg;
+    if (confidence) {
+        document.getElementById('confidenceDiv').style.display = 'block';
+        const percent = Math.round(confidence * 100);
+        document.getElementById('confidenceBar').style.width = percent + '%';
+        document.getElementById('confidenceText').textContent = `${percent}% match`;
+    }
+}
+
+function showError(msg) {
+    showStatus('error');
+    document.getElementById('errorMsg').textContent = '❌ Error';
+    document.getElementById('errorDetail').textContent = msg;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// MANUAL ENTRY
+// ─────────────────────────────────────────────────────────────────────────
+
+async function submitManualEntry() {
+    const checkIn = document.getElementById('checkInTime').value;
+    const checkOut = document.getElementById('checkOutTime').value;
+    const reason = document.getElementById('manualReason').value;
+    
+    if (!checkIn) {
+        showManualError('Check-in time is required');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/face/api/record_manual', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                check_in_time: checkIn,
+                check_out_time: checkOut,
+                reason: reason
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showManualSuccess('✅ Manual entry recorded and sent for HR approval');
+            setTimeout(() => {
+                $('#manualEntryModal').modal('hide');
+                clearManualForm();
+                loadTodayAttendance();
+            }, 2000);
+        } else {
+            showManualError(result.msg);
+        }
+    } catch (error) {
+        showManualError(`Error: ${error.message}`);
+    }
+}
+
+function clearManualForm() {
+    document.getElementById('checkInTime').value = '';
+    document.getElementById('checkOutTime').value = '';
+    document.getElementById('manualReason').value = '';
+    document.getElementById('manualErrorMsg').style.display = 'none';
+    document.getElementById('manualSuccessMsg').style.display = 'none';
+}
+
+function showManualError(msg) {
+    document.getElementById('manualErrorMsg').style.display = 'block';
+    document.getElementById('manualErrorMsg').textContent = msg;
+    document.getElementById('manualSuccessMsg').style.display = 'none';
+}
+
+function showManualSuccess(msg) {
+    document.getElementById('manualSuccessMsg').style.display = 'block';
+    document.getElementById('manualSuccessMsg').textContent = msg;
+    document.getElementById('manualErrorMsg').style.display = 'none';
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// TODAY'S ATTENDANCE
+// ─────────────────────────────────────────────────────────────────────────
+
+function loadTodayAttendance() {
+    fetch('/face/api/today_attendance')
+        .then(resp => resp.json())
+        .then(data => {
+            if (!data.success || data.records.length === 0) {
+                document.getElementById('todayAttendance').innerHTML = `
+                    <small class="text-muted">No attendance recorded yet.</small>
+                `;
+                return;
+            }
+            
+            let html = '<table class="table table-sm table-striped"><tr><th>Check In</th><th>Check Out</th><th>Hours</th><th>Status</th></tr>';
+            data.records.forEach(rec => {
+                const badge = rec.manual ? '<span class="badge badge-info">Manual</span>' : '';
+                const statusBadge = `<span class="badge badge-${rec.status === 'Approved' ? 'success' : rec.status === 'Pending' ? 'warning' : 'secondary'}">${rec.status}</span>`;
+                html += `<tr>
+                    <td>${rec.check_in}</td>
+                    <td>${rec.check_out}</td>
+                    <td>${rec.hours_worked ? rec.hours_worked + 'h' : '-'}</td>
+                    <td>${statusBadge} ${badge}</td>
+                </tr>`;
+            });
+            html += '</table>';
+            document.getElementById('todayAttendance').innerHTML = html;
+        })
+        .catch(err => console.error('Error loading attendance:', err));
+}
+</script>
+{% endblock %}

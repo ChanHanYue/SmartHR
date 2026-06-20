@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Organisation{% endblock %}
+{% block page_title %}Organisation & Users{% endblock %}
+
+{% block content %}
+<div class="tabs">
+  <div class="tab active" onclick="showOrgTab('company',this)">Company Info</div>
+  <div class="tab" onclick="showOrgTab('branches',this)">Branches</div>
+  <div class="tab" onclick="showOrgTab('departments',this)">Departments</div>
+</div>
+
+<!-- Company Tab -->
+<div id="otab-company" class="fade-in">
+  <div class="card">
+    <div class="sec-title">
+      Company Information
+      {% if session.user_role in ['Admin','HR'] %}
+      <button class="btn btn-primary btn-sm" onclick="document.getElementById('editCompanyModal').classList.add('show')">Edit</button>
+      {% endif %}
+    </div>
+    <div class="kv-grid">
+      <div class="kv-k">Company Name</div><div class="kv-v fw-600">{{ company.name }}</div>
+      <div class="kv-k">Address</div><div class="kv-v">{{ company.address or '—' }}</div>
+      <div class="kv-k">Contact No.</div><div class="kv-v">{{ company.contact_no or '—' }}</div>
+      <div class="kv-k">Email</div><div class="kv-v">{{ company.email or '—' }}</div>
+      <div class="kv-k">Created</div><div class="kv-v">{{ company.created_at[:10] }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Branches Tab -->
+<div id="otab-branches" style="display:none" class="fade-in">
+  {% if session.user_role in ['Admin','HR'] %}
+  <div class="btn-row">
+    <button class="btn btn-primary btn-sm" onclick="document.getElementById('addBranchModal').classList.add('show')">+ Add Branch</button>
+  </div>
+  {% endif %}
+  <div class="card">
+    <div class="sec-title">Branches</div>
+    <table class="tbl">
+      <thead><tr><th>Branch Name</th><th>Address</th><th>Contact</th><th>HR Manager</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for b in branches %}
+        <tr>
+          <td style="font-weight:600">{{ b.name }}</td>
+          <td>{{ b.address or '—' }}</td>
+          <td>{{ b.contact_no or '—' }}</td>
+          <td>{{ b.manager_name or '—' }}</td>
+          <td>
+            <div style="display: flex; gap: 5px;">
+              {% if session.user_role in ['Admin','HR'] %}
+              <button class="btn btn-sm btn-primary" onclick='openEditBranchModal({{ b|tojson }})'>Edit</button>
+              {% endif %}
+              {% if session.user_role == 'Admin' %}
+              <form method="POST" action="{{ url_for('organization.delete_branch', bid=b.branch_id) }}" onsubmit="return confirm('Delete this branch?')">
+                <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Departments Tab -->
+<div id="otab-departments" style="display:none" class="fade-in">
+  {% if session.user_role in ['Admin','HR'] %}
+  <div class="btn-row">
+    <button class="btn btn-primary btn-sm" onclick="document.getElementById('addDeptModal').classList.add('show')">+ Add Department</button>
+  </div>
+  {% endif %}
+  <div class="card">
+    <div class="sec-title">Departments</div>
+    <table class="tbl">
+      <thead><tr><th>Department</th><th>Branch</th><th>Employee Count</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for d in departments %}
+        <tr>
+          <td style="font-weight:600">{{ d.department_name }}</td>
+          <td>{{ d.branch_name }}</td>
+          <td><span class="badge badge-blue">{{ d.emp_count }}</span></td>
+          <td>
+            {% if session.user_role=='Admin' and d.emp_count==0 %}
+            <form method="POST" action="{{ url_for('organization.delete_department', did=d.department_id) }}"
+                  onsubmit="return confirm('Delete this department?')">
+              <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modals -->
+{% if session.user_role in ['Admin','HR'] %}
+<!-- Edit Company Modal -->
+<div class="modal-backdrop" id="editCompanyModal">
+  <div class="modal-card">
+    <div class="modal-title">Edit Company <button class="btn btn-sm" onclick="document.getElementById('editCompanyModal').classList.remove('show')">✕</button></div>
+    <form method="POST" action="{{ url_for('organization.edit_company') }}">
+      <div class="form-group"><label class="form-label">Company Name *</label><input class="form-input" name="name" value="{{ company.name }}" required></div>
+      <div class="form-group"><label class="form-label">Address</label><textarea class="form-input" name="address" rows="2">{{ company.address or '' }}</textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Contact No.</label><input class="form-input" name="contact_no" value="{{ company.contact_no or '' }}"></div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" name="email" value="{{ company.email or '' }}"></div>
+      </div>
+      <button class="btn btn-primary" type="submit">Save</button>
+    </form>
+  </div>
+</div>
+
+<!-- Add Branch Modal -->
+<div class="modal-backdrop" id="addBranchModal">
+  <div class="modal-card">
+    <div class="modal-title">Add Branch <button class="btn btn-sm" onclick="document.getElementById('addBranchModal').classList.remove('show')">✕</button></div>
+    <form method="POST" action="{{ url_for('organization.add_branch') }}">
+      <div class="form-group"><label class="form-label">Branch Name *</label><input class="form-input" name="name" required placeholder="e.g. Penang Office"></div>
+      <div class="form-group"><label class="form-label">Address *</label><textarea class="form-input" name="address" required rows="2"></textarea></div>
+      <div class="form-group"><label class="form-label">Contact No.</label><input class="form-input" name="contact_no"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">HR Manager</label>
+          <select class="form-input" name="hr_manager_id">
+            <option value="">— Select HR Manager —</option>
+            {% for e in employees %}<option value="{{ e.employee_id }}">{{ e.full_name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Parent Branch (Optional)</label>
+          <select class="form-input" name="parent_branch_id">
+            <option value="">— No Parent —</option>
+            {% for br in branches %}<option value="{{ br.branch_id }}">{{ br.name }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit">Add Branch</button>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Branch Modal -->
+<div class="modal-backdrop" id="editBranchModal">
+  <div class="modal-card">
+    <div class="modal-title">Edit Branch <button class="btn btn-sm" onclick="document.getElementById('editBranchModal').classList.remove('show')">✕</button></div>
+    <form method="POST" id="editBranchForm">
+      <div class="form-group"><label class="form-label">Branch Name *</label><input class="form-input" name="name" id="eb_name" required></div>
+      <div class="form-group"><label class="form-label">Address *</label><textarea class="form-input" name="address" id="eb_address" required rows="2"></textarea></div>
+      <div class="form-group"><label class="form-label">Contact No.</label><input class="form-input" name="contact_no" id="eb_contact"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">HR Manager</label>
+          <select class="form-input" name="hr_manager_id" id="eb_manager">
+            <option value="">— Select HR Manager —</option>
+            {% for e in employees %}<option value="{{ e.employee_id }}">{{ e.full_name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Parent Branch (Optional)</label>
+          <select class="form-input" name="parent_branch_id" id="eb_parent">
+            <option value="">— No Parent —</option>
+            {% for br in branches %}<option value="{{ br.branch_id }}">{{ br.name }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit">Update Branch</button>
+    </form>
+  </div>
+</div>
+
+<!-- Add Department Modal -->
+<div class="modal-backdrop" id="addDeptModal">
+  <div class="modal-card">
+    <div class="modal-title">Add Department <button class="btn btn-sm" onclick="document.getElementById('addDeptModal').classList.remove('show')">✕</button></div>
+    <form method="POST" action="{{ url_for('organization.add_department') }}">
+      <div class="form-group">
+        <label class="form-label">Branch *</label>
+        <select class="form-input" name="branch_id" required>
+          {% for b in branches %}<option value="{{ b.branch_id }}">{{ b.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Department Name *</label><input class="form-input" name="department_name" required placeholder="e.g. Marketing"></div>
+      <button class="btn btn-primary" type="submit">Add Department</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showOrgTab(id, el){
+  ['company','branches','departments'].forEach(t=>{
+    document.getElementById('otab-'+t).style.display='none';
+  });
+  document.getElementById('otab-'+id).style.display='block';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function openEditBranchModal(data) {
+  document.getElementById('editBranchForm').action = "/organization/branch/" + data.branch_id + "/edit";
+  document.getElementById('eb_name').value = data.name;
+  document.getElementById('eb_address').value = data.address || '';
+  document.getElementById('eb_contact').value = data.contact_no || '';
+  document.getElementById('eb_manager').value = data.hr_manager_id || '';
+  document.getElementById('eb_parent').value = data.parent_branch_id || '';
+  
+  // Disable current branch as its own parent to prevent loops
+  const parentSelect = document.getElementById('eb_parent');
+  for (let i = 0; i < parentSelect.options.length; i++) {
+    parentSelect.options[i].disabled = (parentSelect.options[i].value == data.branch_id);
+  }
+
+  document.getElementById('editBranchModal').classList.add('show');
+}
+
+document.querySelectorAll('.modal-backdrop').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')});
+});
+</script>
+{% endblock %}

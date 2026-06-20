@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Roles & Permissions | SmartHR{% endblock %}
+
+{% block page_title %}Roles & Permissions{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-body table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Role Name</th>
+          <th>Employees</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in roles %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>
+            <span class="badge 
+              {%- if r.role_name == 'Admin' %} bg-danger
+              {%- elif r.role_name == 'HR' %} bg-primary
+              {%- elif r.role_name == 'Manager' %} bg-warning
+              {%- else %} bg-secondary{% endif %}"
+              style="font-size: 0.9rem; padding: 6px 12px;">
+              {{ r.role_name }}
+            </span>
+          </td>
+          <td>{{ r.employee_count or 0 }}</td>
+          <td>
+            {% if r.role_name == 'Admin' %}
+              Full system access, user management, organisation settings.
+            {% elif r.role_name == 'HR' %}
+              Personnel management, leave approvals, payroll, reports.
+            {% elif r.role_name == 'Manager' %}
+              Team oversight, leave approvals (for direct reports), expense claims review.
+            {% else %}
+              Standard employee – apply leave, view own data, submit claims.
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-center text-muted py-4">No roles found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="alert alert-info mt-3">
+  <strong>ℹ️ Note:</strong> Role permissions are hard-coded in the application logic.
+  To change a user's role, go to <a href="{{ url_for('employees.list_employees') }}">Employee Management</a> and edit their profile.
+</div>
+
+{% endblock %}

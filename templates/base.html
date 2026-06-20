@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}SmartHR{% endblock %} | AI-Powered HR Platform</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% block head %}{% endblock %}
+</head>
+<body>
+<div class="app">
+  <div class="sidebar-overlay" onclick="document.body.classList.remove('sidebar-open')"></div>
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <a class="logo" href="{{ url_for('main.dashboard') }}">
+      <div class="logo-icon">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:24px;height:24px;">
+          <path d="M11 21C11 21 12.5 14 16 14C19.5 14 21 21 21 21" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="16" cy="10" r="3" fill="white"/>
+        </svg>
+      </div>
+      <div class="logo-text">SmartHR<span>AI-Powered Platform</span></div>
+    </a>
+    <div class="nav">
+      <a class="nav-item {% if request.endpoint=='main.dashboard' %}active{% endif %}"
+         href="{{ url_for('main.dashboard') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><rect x="2" y="2" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="10" y="2" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="2" y="10" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="10" y="10" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/></svg>
+        Dashboard
+      </a>
+
+      {% if session.user_role in ['Admin','HR'] %}
+      <div class="nav-section-group">
+        <div class="nav-section-header" onclick="toggleNavSection(this)">
+          <span class="nav-section-toggle">▶</span>
+          Organisation
+        </div>
+        <div class="nav-section-items">
+      <a class="nav-item {% if request.blueprint=='organization' and request.endpoint=='organization.companies' %}active{% endif %}"
+         href="{{ url_for('organization.companies') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><rect x="2" y="4" width="14" height="12" rx="1.5" stroke="currentColor"/><path d="M6 4V2h6v2" stroke="currentColor"/><path d="M6 7h6M6 10h4" stroke="currentColor"/></svg>
+        Companies
+      </a>
+      <a class="nav-item {% if request.blueprint=='organization' and request.endpoint=='organization.branches' %}active{% endif %}"
+         href="{{ url_for('organization.branches') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><path d="M3 5L9 2l6 3v8l-6 3-6-3V5z" stroke="currentColor"/><path d="M9 5v5" stroke="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/></svg>
+        Branches
+      </a>
+      <a class="nav-item {% if request.blueprint=='organization' and request.endpoint=='organization.departments' %}active{% endif %}"
+         href="{{ url_for('organization.departments') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><rect x="3" y="7" width="4" height="8" rx="1" stroke="currentColor"/><rect x="11" y="7" width="4" height="8" rx="1" stroke="currentColor"/><rect x="3" y="2" width="12" height="3" rx="1.5" fill="currentColor"/></svg>
+        Departments
+      </a>
+      </div>
+      </div>
+      {% endif %}
+
+      {% if session.user_role in ['Admin','HR','Manager'] %}
+      <div class="nav-section-group">
+        <div class="nav-section-header" onclick="toggleNavSection(this)">
+          <span class="nav-section-toggle">▶</span>
+          User Management
+        </div>
+        <div class="nav-section-items">
+      <a class="nav-item {% if request.blueprint=='employees' and request.endpoint=='employees.list_employees' %}active{% endif %}"
+         href="{{ url_for('employees.list_employees') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><circle cx="9" cy="6" r="3" fill="currentColor"/><path d="M3 15c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5"/></svg>
+        Employees
+      </a>
+      {% if session.user_role in ['Admin','HR'] %}
+      <a class="nav-item {% if request.blueprint=='organization' and request.endpoint=='organization.roles' %}active{% endif %}"
+         href="{{ url_for('organization.roles') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><circle cx="5" cy="6" r="2" fill="currentColor"/><circle cx="13" cy="6" r="2" fill="currentColor"/><path d="M1 14c0-2.5 2-4 4-4s4 1.5 4 4" stroke="currentColor"/><path d="M9 14c0-2.5 2-4 4-4s4 1.5 4 4" stroke="currentColor"/><path d="M5 10v-2M13 10v-2" stroke="currentColor"/></svg>
+        Roles & Permissions
+      </a>
+      {% endif %}
+      </div>
+      </div>
+      {% endif %}
+
+      <div class="nav-section-group">
+        <div class="nav-section-header" onclick="toggleNavSection(this)">
+          <span class="nav-section-toggle">▶</span>
+          Time &amp; Attendance
+        </div>
+        <div class="nav-section-items">
+      <a class="nav-item {% if request.endpoint=='attendance.biometric' %}active{% endif %}"
+         href="{{ url_for('attendance.biometric') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><circle cx="9" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M4 15c.5-2.5 2.5-4 5-4s4.5 1.5 5 4" stroke="currentColor"/></svg>
+        Face Biometric
+      </a>
+      <a class="nav-item {% if request.endpoint=='attendance.manual' %}active{% endif %}"
+         href="{{ url_for('attendance.manual') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><rect x="3" y="2" width="12" height="14" rx="2" stroke="currentColor"/><path d="M6 7h6M6 10h4" stroke="currentColor"/></svg>
+        Manual Attendance
+      </a>
+      <a class="nav-item {% if request.endpoint=='attendance.time_tracking' %}active{% endif %}"
+         href="{{ url_for('attendance.time_tracking') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M9 5v4l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Time Tracking
+      </a>
+      <a class="nav-item {% if request.endpoint=='attendance.attendance_logs' %}active{% endif %}"
+         href="{{ url_for('attendance.attendance_logs') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><rect x="3" y="2" width="12" height="14" rx="2" stroke="currentColor"/><path d="M6 6h6M6 9h6M6 12h4" stroke="currentColor"/></svg>
+        Attendance Logs
+      </a>
+      <a class="nav-item {% if request.endpoint=='leave.apply' %}active{% endif %}"
+         href="{{ url_for('leave.apply') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><rect x="2" y="4" width="14" height="12" rx="2" stroke="currentColor"/><path d="M6 2v4M12 2v4M2 8h14" stroke="currentColor"/></svg>
+        Apply Leave
+      </a>
+      {% if session.user_role in ['Admin','HR','Manager'] %}
+      <a class="nav-item {% if request.endpoint=='leave.approve_list' %}active{% endif %}"
+         href="{{ url_for('leave.approve_list') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><path d="M3 9l4 4 8-8" stroke="currentColor" stroke-width="1.6"/></svg>
+        Leave Approvals
+      </a>
+      {% endif %}
+      </div>
+      </div>
+
+      <div class="nav-section-group">
+        <div class="nav-section-header" onclick="toggleNavSection(this)">
+          <span class="nav-section-toggle">▶</span>
+          Finance &amp; Payroll
+        </div>
+        <div class="nav-section-items">
+      <a class="nav-item {% if request.blueprint=='payroll' %}active{% endif %}"
+         href="{{ url_for('payroll.list_payroll') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><rect x="2" y="4" width="14" height="10" rx="2" stroke="currentColor"/><path d="M6 9h6M9 7v4" stroke="currentColor"/></svg>
+        Payroll Processing
+      </a>
+      <a class="nav-item {% if request.blueprint=='invoice' and request.endpoint!='invoice.claims_management' %}active{% endif %}"
+         href="{{ url_for('invoice.list_invoices') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><rect x="3" y="2" width="12" height="14" rx="2" stroke="currentColor"/><path d="M6 6h6M6 9h6M6 12h4" stroke="currentColor"/></svg>
+        AI Expense Claims
+      </a>
+      {% if session.user_role in ['Admin','HR'] %}
+      <a class="nav-item {% if request.endpoint=='invoice.claims_management' %}active{% endif %}"
+         href="{{ url_for('invoice.claims_management') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><path d="M3 9l3 3 9-9" stroke="currentColor" stroke-width="1.6"/><rect x="2.5" y="2.5" width="13" height="13" rx="2" stroke="currentColor" opacity=".6"/></svg>
+        Claims Management
+      </a>
+      {% endif %}
+      </div>
+      </div>
+
+      <div class="nav-section-group">
+        <div class="nav-section-header" onclick="toggleNavSection(this)">
+          <span class="nav-section-toggle">▶</span>
+          System
+        </div>
+        <div class="nav-section-items">
+      {% if session.user_role in ['Admin','HR','Manager'] %}
+      <a class="nav-item {% if request.blueprint=='reports' %}active{% endif %}"
+         href="{{ url_for('reports.index') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><path d="M3 14l4-4 3 3 5-7" stroke="currentColor" stroke-width="1.5"/></svg>
+        Reports &amp; Analytics
+      </a>
+      {% endif %}
+      {% if session.user_role in ['Admin','HR'] %}
+      <a class="nav-item {% if request.blueprint=='audit' %}active{% endif %}"
+         href="{{ url_for('audit.index') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><path d="M3 3h12v12H3z" stroke="currentColor"/><path d="M6 6h6M6 9h6M6 12h4" stroke="currentColor"/></svg>
+        System Audit Log
+      </a>
+      {% endif %}
+      <a class="nav-item {% if request.blueprint=='settings' %}active{% endif %}"
+         href="{{ url_for('settings.index') }}">
+        <svg class="nav-icon" fill="none" viewBox="0 0 18 18"><circle cx="9" cy="9" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 2v1.5M9 14.5V16M2 9h1.5M14.5 9H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Settings &amp; Profile
+      </a>
+      </div>
+      </div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="avatar">{{ session.user_initials }}</div>
+      <div class="user-info">
+        <div class="user-name">{{ session.user_name }}</div>
+        <div class="user-role">{{ session.user_role }}</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="header">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="hamburger-btn" onclick="document.body.classList.toggle('sidebar-open')" title="Toggle Sidebar">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <div class="page-title" id="page-title">{% block page_title %}SmartHR{% endblock %}</div>
+      </div>
+
+      <div class="hdr-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" placeholder="Search anything...">
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px;">
+        <a href="#" class="hdr-btn" title="Notifications" onclick="toggleNotifications(); return false;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          {% if has_unread_notifications %}<div class="notif-dot"></div>{% endif %}
+        </a>
+
+        <div id="notif-dropdown" class="notif-dropdown">
+          <div class="notif-header">Quick View</div>
+          <div class="notif-body">
+            {% if header_notifications %}
+              {% for n in header_notifications %}
+                {% if n.type == 'System' %}
+                  <div class="notif-item" style="cursor: pointer;" onclick="window.location.href='{{ n.related_url or url_for('employees.get_notifications') }}'">
+                    <div class="notif-title">{{ n.notif_type }}: {{ n.ref }}</div>
+                    <div class="notif-message">{{ n.message }}</div>
+                    <div class="notif-time">{{ n.dt[:16] }}</div>
+                  </div>
+                {% else %}
+                  <div class="notif-item">
+                    <div class="notif-title">{{ n.type }}: {{ n.ref }}</div>
+                    <div class="notif-time">{{ n.dt[:16] }}</div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            {% else %}
+              <div class="notif-empty">No new notifications</div>
+            {% endif %}
+            <div style="padding: 12px; border-top: 1px solid var(--border-color);">
+              <a href="{{ url_for('employees.get_notifications') }}" style="color: var(--success-color); text-decoration: none; font-weight: 600;">View All Notifications →</a>
+            </div>
+          </div>
+        </div>
+
+        <a class="hdr-btn" href="{{ url_for('settings.index') }}" title="Profile">
+          <div class="avatar" style="width:28px;height:28px;font-size:11px">{{ session.user_initials }}</div>
+        </a>
+        <a class="btn btn-sm" href="{{ url_for('auth.logout') }}" style="color:#a32d2d;border-color:#f5c6c6">Logout</a>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }} fade-in">
+            <span>{% if cat=='success' %}✅{% elif cat=='danger' %}❌{% elif cat=='warning' %}⚠️{% else %}ℹ️{% endif %}</span>
+            {{ msg }}
+          </div>
+        {% endfor %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+
+{% block modals %}{% endblock %}
+
+<script>
+// Active nav highlight is handled by Jinja2 classes above
+// Tab switching helper
+function switchTab(el, groupClass){
+  el.closest('.'+groupClass).querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+function toggleNotifications(){
+  document.getElementById('notif-dropdown').classList.toggle('show');
+}
+window.onclick = function(event) {
+  if (!event.target.closest('.hdr-btn') && !event.target.closest('.notif-dropdown')) {
+    var dropdowns = document.getElementsByClassName("notif-dropdown");
+    for (var i = 0; i < dropdowns.length; i++) {
+      var openDropdown = dropdowns[i];
+      if (openDropdown.classList.contains('show')) {
+        openDropdown.classList.remove('show');
+      }
+    }
+  }
+}
+
+// Collapsible navigation sections
+function toggleNavSection(header) {
+  const group = header.closest('.nav-section-group');
+  group.classList.toggle('collapsed');
+  // Store preference in localStorage
+  const sectionName = header.textContent.trim().split('\n')[0];
+  const isCollapsed = group.classList.contains('collapsed');
+  localStorage.setItem('nav-collapsed-' + sectionName, isCollapsed);
+}
+
+// Load saved nav state on page load
+window.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.nav-section-group').forEach(group => {
+    const header = group.querySelector('.nav-section-header');
+    const sectionName = header.textContent.trim().split('\n')[0];
+    const isCollapsed = localStorage.getItem('nav-collapsed-' + sectionName) === 'true';
+    if (isCollapsed) {
+      group.classList.add('collapsed');
+    }
+  });
+});
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
