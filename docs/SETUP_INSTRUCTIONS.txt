@@ -1,0 +1,270 @@
+============================================================
+  SmartHR – AI-Powered HR Management System
+  COMPLETE SETUP GUIDE (Windows 10/11)
+  Last updated: 2026-05-27
+============================================================
+
+************************************************************
+   QUICK START: AUTOMATED SETUP (RECOMMENDED)
+************************************************************
+To set up the system on a NEW machine as a server:
+
+1. INSTALL PREREQUISITES:
+   - Python 3.10+ (Check "Add to PATH" during install)
+   - Tesseract OCR (Install to default C:\Program Files\Tesseract-OCR)
+
+2. RUN AUTOMATED SETUP:
+   - Double-click 'Setup_SmartHR.bat'.
+   - This will automatically create the environment and install
+     all necessary libraries (Flask, OCR, etc.).
+
+3. LAUNCH THE SYSTEM:
+   - Double-click 'Start_SmartHR.bat'.
+   - The window will tell you the exact URL to use.
+
+4. ACCESS FROM OTHER DEVICES:
+   - Connect the other device to the same Wi-Fi.
+   - Open browser and type the URL shown (e.g., http://192.168.1.x:5000)
+
+************************************************************
+
+OVERVIEW
+--------
+SmartHR is a Flask-based HR system with:
+  - Employee, Leave, Attendance, Invoice, Payroll management
+  - AI Invoice OCR (Tesseract)
+  - Face-Recognition Biometric Attendance (optional)
+  - PDF/CSV Report Export
+
+------------------------------------------------------------
+STEP 1: INSTALL PYTHON
+------------------------------------------------------------
+1. Download Python 3.10 or newer from:
+     https://www.python.org/downloads/
+
+2. During installation:
+   - CHECK "Add Python to PATH"
+   - Choose "Install Now" (default settings are fine)
+
+3. Verify in Command Prompt / PowerShell:
+     python --version
+     pip --version
+
+------------------------------------------------------------
+STEP 2: INSTALL TESSERACT OCR (Required for Invoice AI)
+------------------------------------------------------------
+1. Download the Tesseract installer for Windows from:
+     https://github.com/UB-Mannheim/tesseract/wiki
+   (Choose the latest "tesseract-ocr-w64-setup-*.exe")
+
+2. Run the installer. Use the DEFAULT install path:
+     C:\Program Files\Tesseract-OCR\
+
+3. During installation, also select:
+   - "Additional language data" > English (eng) – REQUIRED
+
+4. Add Tesseract to Windows PATH (optional, the app sets it
+   automatically, but good practice):
+   - Open System Properties > Advanced > Environment Variables
+   - Under "System variables", find "Path" > Edit > New
+   - Add:  C:\Program Files\Tesseract-OCR\
+
+5. Verify (open a NEW Command Prompt):
+     tesseract --version
+
+------------------------------------------------------------
+STEP 3: NAVIGATE TO THE PROJECT FOLDER
+------------------------------------------------------------
+Open PowerShell or Command Prompt and run:
+
+  cd "C:\Users\<YourUsername>\OneDrive - Tunku Abdul Rahman University College\FYP\smarthr_app"
+
+Replace <YourUsername> with your actual Windows username.
+
+------------------------------------------------------------
+STEP 4: CREATE A VIRTUAL ENVIRONMENT (Recommended)
+------------------------------------------------------------
+  python -m venv venv
+
+Activate it:
+  Windows PowerShell:  .\venv\Scripts\Activate.ps1
+  Windows CMD:         venv\Scripts\activate.bat
+
+You should see (venv) at the start of your prompt.
+
+NOTE: If PowerShell gives an execution policy error, run:
+  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+Then try activating again.
+
+------------------------------------------------------------
+STEP 5: INSTALL PYTHON DEPENDENCIES
+------------------------------------------------------------
+  pip install -r requirements.txt
+
+This installs:
+  - flask, werkzeug          (web framework + auth)
+  - pillow                   (image processing for OCR)
+  - pytesseract              (Python wrapper for Tesseract)
+  - opencv-python-headless   (image preprocessing for better OCR)
+  - numpy                    (required by OpenCV)
+  - reportlab                (PDF payslip/report generation)
+  - PyPDF2                   (PDF text and image extraction)
+
+If you see errors about Microsoft Visual C++:
+  Install from: https://aka.ms/vs/17/release/vc_redist.x64.exe
+  Then run pip install again.
+
+------------------------------------------------------------
+STEP 6: INITIALISE THE DATABASE (Run ONCE only)
+------------------------------------------------------------
+  python init_db.py
+
+This will:
+  - Create instance/smarthr.db (SQLite database)
+  - Create all 17 tables from schema.sql
+  - Seed demo data: 1 company, 2 branches, departments,
+    10 Malaysian employees, leave records, payroll, invoices
+
+OUTPUT should end with:
+  "Database initialized and seeded successfully."
+
+WARNING: Running init_db.py again will RESET all data.
+         To back up, copy instance/smarthr.db somewhere safe.
+
+------------------------------------------------------------
+STEP 7: START THE SERVER
+------------------------------------------------------------
+  python run.py
+
+OUTPUT should show:
+  * Running on http://0.0.0.0:5000
+  * Debugger is active!
+
+------------------------------------------------------------
+STEP 8: ACCESS THE SYSTEM
+------------------------------------------------------------
+From the SAME computer:
+  http://127.0.0.1:5000
+
+From another device on the SAME Wi-Fi/LAN:
+  http://<server-ip>:5000
+
+To find your server IP:
+  Open CMD > run:  ipconfig
+  Look for "IPv4 Address" under your active network adapter.
+  Example: 192.168.1.105
+
+------------------------------------------------------------
+DEFAULT LOGIN CREDENTIALS
+------------------------------------------------------------
+  Role          | Email                    | Password
+  --------------|--------------------------|-------------
+  System Admin  | admin@smarthr.my         | Admin@123
+  HR Director   | hr@smarthr.my            | Hr@123
+  Manager (KL)  | brian@smarthr.my         | Manager@123
+  Manager (PG)  | hafiz@smarthr.my         | Manager@123
+  Employee      | elizabeth@smarthr.my     | Employee@123
+  Employee      | ryan@smarthr.my          | Employee@123
+  Employee      | nurul@smarthr.my         | Employee@123
+  Employee      | priya@smarthr.my         | Employee@123
+
+WARNING: Change all passwords before any real/production use!
+
+------------------------------------------------------------
+OPTIONAL: FACE RECOGNITION (Biometric Attendance)
+------------------------------------------------------------
+Face recognition requires additional heavy libraries.
+This is OPTIONAL – the system works without it.
+
+RECOMMENDED: Use conda (Anaconda) for easier dlib install.
+
+Option A – With Anaconda:
+  conda install -c conda-forge dlib
+  pip install face-recognition opencv-python numpy
+
+Option B – With pip only (may need Visual C++ Build Tools):
+  Download CMake from https://cmake.org/download/ (add to PATH)
+  pip install dlib face-recognition opencv-python numpy
+
+After installation, restart the server. The biometric
+attendance page will automatically detect the library.
+
+------------------------------------------------------------
+OPTIONAL: PDF EXPORT (Payslips & Reports)
+------------------------------------------------------------
+Already included in requirements.txt via reportlab.
+No extra steps needed.
+
+------------------------------------------------------------
+RESETTING THE DATABASE
+------------------------------------------------------------
+To start fresh:
+  1. Delete the file:  instance\smarthr.db
+  2. Run again:        python init_db.py
+
+------------------------------------------------------------
+TROUBLESHOOTING
+------------------------------------------------------------
+Problem: "ModuleNotFoundError: No module named 'flask'"
+Fix:     Make sure your venv is activated and you ran:
+         pip install -r requirements.txt
+
+Problem: "tesseract is not installed or not in PATH"
+Fix:     Make sure Tesseract is installed to:
+         C:\Program Files\Tesseract-OCR\tesseract.exe
+         The app auto-detects this path on Windows.
+
+Problem: "Permission denied" on uploads folder
+Fix:     Right-click the uploads\ folder > Properties >
+         Security > Give your user "Full control"
+
+Problem: App works locally but not from another device
+Fix:     - Make sure you use http://<server-ip>:5000
+         - Check Windows Firewall: allow port 5000
+           Control Panel > Windows Defender Firewall >
+           Advanced Settings > Inbound Rules > New Rule >
+           Port > TCP > 5000 > Allow
+
+Problem: PowerShell "cannot be loaded because running scripts
+         is disabled on this system"
+Fix:     Run:  Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+Problem: OCR extracts wrong data from invoice image
+Fix:     - Use clear, well-lit photos of invoices
+         - Avoid blurry or skewed images
+         - Higher resolution images give better results
+         - After extraction, always verify and correct the fields
+           before submitting
+
+------------------------------------------------------------
+FILE STRUCTURE REFERENCE
+------------------------------------------------------------
+smarthr_app/
+├── app/                    Main application modules
+│   ├── __init__.py         Flask factory (registers blueprints)
+│   ├── database.py         SQLite helpers
+│   ├── auth/routes.py      Login / Logout
+│   ├── main/routes.py      Dashboard
+│   ├── employees/routes.py Employee CRUD
+│   ├── organization/       Company / Branch / Department
+│   ├── leave/routes.py     Leave apply & approve
+│   ├── attendance/routes.py Attendance + biometric
+│   ├── invoice/routes.py   Invoice upload + OCR
+│   ├── payroll/routes.py   Payroll + payslip PDF
+│   ├── reports/routes.py   Reports (CSV + PDF export)
+│   ├── audit/routes.py     Audit log viewer
+│   └── settings/routes.py  Profile & password
+├── templates/              Jinja2 HTML templates
+├── static/css/style.css    Main stylesheet
+├── uploads/                Uploaded invoice files
+├── instance/smarthr.db     SQLite database (auto-created)
+├── schema.sql              Database schema (17 tables)
+├── init_db.py              DB initialiser + demo data seeder
+├── run.py                  Entry point
+├── requirements.txt        Python dependencies
+└── instruction.txt         This file
+
+============================================================
+  CONTACT: Chan Han Yue (Full Stack Dev)
+  Supervisor: TARUC Faculty of Computing & IT
+============================================================
